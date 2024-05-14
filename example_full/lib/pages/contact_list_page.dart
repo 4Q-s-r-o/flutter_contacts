@@ -15,6 +15,7 @@ class _ContactListPageState extends State<ContactListPage>
     with AfterLayoutMixin<ContactListPage> {
   List<Contact>? _contacts;
   bool _permissionDenied = false;
+  TextEditingController lookupKeyController = TextEditingController();
 
   @override
   void initState() {
@@ -24,6 +25,7 @@ class _ContactListPageState extends State<ContactListPage>
   @override
   void dispose() {
     super.dispose();
+    lookupKeyController.dispose();
   }
 
   @override
@@ -61,6 +63,10 @@ class _ContactListPageState extends State<ContactListPage>
     final contacts = withPhotos
         ? (await FlutterContacts.getContacts(withThumbnail: true)).toList()
         : (await FlutterContacts.getContacts()).toList();
+    print('keys:');
+    for (var c in contacts) {
+      print(c.lookupKey);
+    }
     setState(() {
       _contacts = contacts;
     });
@@ -77,6 +83,7 @@ class _ContactListPageState extends State<ContactListPage>
                 'Groups',
                 'Insert external',
                 'Insert external (prepopulated)',
+                'Find by lookup key',
               ].map(_menuItemBuilder).toList(),
             ),
           ],
@@ -138,6 +145,37 @@ class _ContactListPageState extends State<ContactListPage>
         if (kDebugMode) {
           print('Contact added: ${contact?.id}');
         }
+        break;
+      case 'Find by lookup key':
+        showDialog(context: context, builder: (context) => AlertDialog(
+          title: const Text('Lookup key'),
+          content: TextFormField(
+            controller: lookupKeyController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child:
+              const Text('Cancel'),
+              onPressed: () async {
+                Navigator.of(context).pop(null);
+              },
+            ),
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () async {
+                if (lookupKeyController.text == null || lookupKeyController.text.isEmpty) {
+                  return;
+                }
+                var c = await FlutterContacts.getContactByLookupKey(lookupKeyController.text);
+                print(c);
+                Navigator.of(context).pop(null);
+              },
+            ),
+          ],
+        ));
         break;
       default:
         log('Unknown overflow menu item: $value');

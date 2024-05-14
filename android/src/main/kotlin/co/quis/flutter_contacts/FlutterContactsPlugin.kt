@@ -105,8 +105,33 @@ class FlutterContactsPlugin : FlutterPlugin, MethodCallHandler, EventChannel.Str
                 }
             FlutterContacts.REQUEST_CODE_INSERT ->
                 if (insertResult != null) {
-                    val contactId = getContactIdFromExternalInsertResult(intent)
-                    insertResult!!.success(contactId)
+                    // Result is of the form:
+                    // content://com.android.contacts/raw_contacts/<raw_id>
+                    // So we need to get the ID from the raw ID.
+                    val rawId = intent?.getData()?.getLastPathSegment()
+                    if (rawId != null) {
+                        val contacts: List<Map<String, Any?>> =
+                            FlutterContacts.select(
+                                resolver!!,
+                                rawId,
+                                /*lookupKey=*/null,
+                                /*withProperties=*/false,
+                                /*withThumbnail=*/false,
+                                /*withPhoto=*/false,
+                                /*withGroups=*/false,
+                                /*withAccounts=*/false,
+                                /*returnUnifiedContacts=*/true,
+                                /*includeNonVisible=*/true,
+                                /*idIsRawContactId=*/true
+                            )
+                        if (contacts.isNotEmpty()) {
+                            insertResult!!.success(contacts[0]["id"])
+                        } else {
+                            insertResult!!.success(null)
+                        }
+                    } else {
+                        insertResult!!.success(null)
+                    }
                     insertResult = null
                 }
         }
@@ -185,10 +210,12 @@ class FlutterContactsPlugin : FlutterPlugin, MethodCallHandler, EventChannel.Str
                     val returnUnifiedContacts = args[6] as Boolean
                     val includeNonVisible = args[7] as Boolean
                     // args[8] = includeNotesOnIos13AndAbove
+                    val lookupKey = args[9] as String?
                     val contacts: List<Map<String, Any?>> =
                         FlutterContacts.select(
                             resolver!!,
                             id,
+                            lookupKey,
                             withProperties,
                             // Sometimes thumbnail is available but photo is not, so we
                             // fetch thumbnails even if only the photo was requested.

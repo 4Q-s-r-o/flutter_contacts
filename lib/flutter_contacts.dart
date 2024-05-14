@@ -130,6 +130,51 @@ class FlutterContacts {
     return contacts.first;
   }
 
+  /// Fetches one contact using lookupKey instead of id.
+  ///
+  /// By default everything available is fetched. If [withProperties] is
+  /// false, properties (phones, emails, addresses, websites, etc) won't be
+  /// fetched.
+  ///
+  /// If [withThumbnail] is false, the low-resolution thumbnail won't be
+  /// fetched. If [withPhoto] is false, the high-resolution photo won't be
+  /// fetched.
+  ///
+  /// If [withGroups] is true, it also returns the group information (called
+  /// labels on Android and groups on iOS).
+  ///
+  /// If [withAccounts] is true, it also returns the account information. On
+  /// Android this is the raw account, and there can be several accounts per
+  /// unified contact (for example one for Gmail, one for Skype and one for
+  /// WhatsApp). On iOS it is called container, and there can be only one
+  /// container per contact.
+  ///
+  /// If [deduplicateProperties] is true, the properties will be de-duplicated,
+  /// mainly to avoid the case (common on Android) where multiple equivalent
+  /// phones are returned.
+  static Future<Contact?> getContactByLookupKey(
+      String lookupKey, {
+        bool withProperties = true,
+        bool withThumbnail = true,
+        bool withPhoto = true,
+        bool withGroups = false,
+        bool withAccounts = false,
+        bool deduplicateProperties = true,
+      }) async {
+    final contacts = await _select(
+      lookupKey: lookupKey,
+      withProperties: withProperties,
+      withThumbnail: withThumbnail,
+      withPhoto: withPhoto,
+      withGroups: withGroups,
+      withAccounts: withAccounts,
+      sorted: false,
+      deduplicateProperties: deduplicateProperties,
+    );
+    if (contacts.length != 1) return null;
+    return contacts.first;
+  }
+
   /// Inserts a new [contact] in the database and returns it.
   ///
   /// Note that the output contact will be different from the input; for example
@@ -309,6 +354,7 @@ class FlutterContacts {
 
   static Future<List<Contact>> _select({
     String? id,
+    String? lookupKey,
     bool withProperties = false,
     bool withThumbnail = false,
     bool withPhoto = false,
@@ -329,6 +375,7 @@ class FlutterContacts {
       config.returnUnifiedContacts,
       config.includeNonVisibleOnAndroid,
       config.includeNotesOnIos13AndAbove,
+      lookupKey //  adding lookup key as last parameter to avoid braking ios
     ]);
     // ignore: omit_local_variable_types
     List<Contact> contacts = untypedContacts

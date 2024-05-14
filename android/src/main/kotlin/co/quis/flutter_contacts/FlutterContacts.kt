@@ -1,32 +1,20 @@
 package co.quis.flutter_contacts
 
 import android.app.Activity
-import android.content.ContentProviderOperation
-import android.content.ContentResolver
-import android.content.ContentUris
-import android.content.ContentValues
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.content.res.AssetFileDescriptor
 import android.database.Cursor
 import android.net.Uri
 import android.provider.ContactsContract
+import android.provider.ContactsContract.*
+import android.provider.ContactsContract.CommonDataKinds.*
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Event
-import android.provider.ContactsContract.CommonDataKinds.GroupMembership
-import android.provider.ContactsContract.CommonDataKinds.Im
-import android.provider.ContactsContract.CommonDataKinds.Nickname
 import android.provider.ContactsContract.CommonDataKinds.Note
 import android.provider.ContactsContract.CommonDataKinds.Organization
 import android.provider.ContactsContract.CommonDataKinds.Phone
-import android.provider.ContactsContract.CommonDataKinds.Photo
-import android.provider.ContactsContract.CommonDataKinds.StructuredName
-import android.provider.ContactsContract.CommonDataKinds.StructuredPostal
 import android.provider.ContactsContract.CommonDataKinds.Website
-import android.provider.ContactsContract.Contacts
-import android.provider.ContactsContract.Data
-import android.provider.ContactsContract.Groups
-import android.provider.ContactsContract.RawContacts
+import android.util.Log
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.OutputStream
@@ -81,6 +69,7 @@ class FlutterContacts {
         fun select(
             resolver: ContentResolver,
             id: String?,
+            lookupKey: String?,
             withProperties: Boolean,
             withThumbnail: Boolean,
             withPhoto: Boolean,
@@ -90,7 +79,7 @@ class FlutterContacts {
             includeNonVisible: Boolean,
             idIsRawContactId: Boolean = false
         ): List<Map<String, Any?>> {
-            if (id == null && !withProperties && !withThumbnail && !withPhoto &&
+            if (id == null && lookupKey == null && !withProperties && !withThumbnail && !withPhoto &&
                 returnUnifiedContacts
             ) {
                 return getQuick(resolver, includeNonVisible)
@@ -99,6 +88,8 @@ class FlutterContacts {
             // All fields we care about – ID and display name are always included.
             var projection = mutableListOf(
                 Data.CONTACT_ID,
+                Data.LOOKUP_KEY,
+                Data.CONTACT_LAST_UPDATED_TIMESTAMP,
                 Data.MIMETYPE,
                 Contacts.DISPLAY_NAME_PRIMARY,
                 Contacts.STARRED
@@ -188,6 +179,28 @@ class FlutterContacts {
                 }
                 selectionArgs = arrayOf(id)
             }
+            if(lookupKey != null && lookupKey != ""){
+                val lookupKeyToContactId = resolver.query(
+                    Contacts.CONTENT_LOOKUP_URI.buildUpon().appendPath(lookupKey).build(),
+                    arrayOf(Contacts._ID), null, null, null
+                )
+                // TRYING TO RESOLVE CONTACT ID BY LOOKUP KEY
+                if (lookupKeyToContactId != null) {
+                    if (lookupKeyToContactId.moveToFirst()) {
+                        selectionClauses.add("${Data.CONTACT_ID} = ?")
+                        selectionArgs += lookupKeyToContactId.getString(
+                            lookupKeyToContactId.getColumnIndexOrThrow(Contacts._ID)
+                        )
+                    } else {
+                        selectionClauses.add("${Data.LOOKUP_KEY} = ?")
+                        selectionArgs += lookupKey
+                    }
+                    lookupKeyToContactId.close();
+                } else {
+                    selectionClauses.add("${Data.LOOKUP_KEY} = ?")
+                    selectionArgs += lookupKey
+                }
+            }
             val selection: String? = if (selectionClauses.isEmpty()) null else selectionClauses.joinToString(separator = " AND ")
 
             // NOTE: The projection filters columns, and the selection filters rows. We
@@ -215,6 +228,7 @@ class FlutterContacts {
 
             fun getString(col: String): String = cursor.getString(cursor.getColumnIndex(col)) ?: ""
             fun getInt(col: String): Int = cursor.getInt(cursor.getColumnIndex(col)) ?: 0
+            fun getLong(col: String): Long = cursor.getLong(cursor.getColumnIndex(col)) ?: 0
             fun getBool(col: String): Boolean = getInt(col) == 1
 
             while (cursor.moveToNext()) {
@@ -223,6 +237,8 @@ class FlutterContacts {
                 if (id !in index) {
                     var contact = Contact(
                         /*id=*/id,
+                        /*lookupKey=*/getString(Contacts.LOOKUP_KEY),
+                        /*lastUpdatedTimestamp=*/getLong(Contacts.CONTACT_LAST_UPDATED_TIMESTAMP),
                         /*displayName=*/getString(Contacts.DISPLAY_NAME_PRIMARY),
                         isStarred = getBool(Contacts.STARRED)
                     )
@@ -264,6 +280,19 @@ class FlutterContacts {
                         val rawId = getString(Data.RAW_CONTACT_ID)
                         val accountType = getString(RawContacts.ACCOUNT_TYPE)
                         val accountName = getString(RawContacts.ACCOUNT_NAME)
+                        var sync1: String? = null
+                        var sync2: String? = null
+                        var sync3: String? = null
+                        var sync4: String? = null
+                        val c = resolver
+                            .query(RawContacts.CONTENT_URI, null, RawContacts._ID + " = ?", arrayOf(rawId), null)
+                        if (c!!.moveToFirst()) {
+                            sync1 = c.getString(c.getColumnIndex(RawContacts.SYNC1))
+                            sync2 = c.getString(c.getColumnIndex(RawContacts.SYNC2))
+                            sync3 = c.getString(c.getColumnIndex(RawContacts.SYNC3))
+                            sync4 = c.getString(c.getColumnIndex(RawContacts.SYNC4))
+                        }
+                        c.close()
                         var accountSeen = false
                         for (account in contact.accounts) {
                             if (account.rawId == rawId) {
@@ -277,6 +306,10 @@ class FlutterContacts {
                                 rawId,
                                 accountType,
                                 accountName,
+                                sync1,
+                                sync2,
+                                sync3,
+                                sync4,
                                 listOf(mimetype)
                             )
                             contact.accounts += account
@@ -458,10 +491,15 @@ class FlutterContacts {
                         .build()
                 )
             } else {
+                Log.d("AAAAA", "Inserting with account. Sync1= "+contact.accounts.first().sync1);
                 ops.add(
                     ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
                         .withValue(RawContacts.ACCOUNT_TYPE, contact.accounts.first().type)
                         .withValue(RawContacts.ACCOUNT_NAME, contact.accounts.first().name)
+                        .withValue(RawContacts.SYNC1, contact.accounts.first().sync1)
+                        .withValue(RawContacts.SYNC2, contact.accounts.first().sync2)
+                        .withValue(RawContacts.SYNC3, contact.accounts.first().sync3)
+                        .withValue(RawContacts.SYNC4, contact.accounts.first().sync4)
                         .build()
                 )
             }
@@ -486,7 +524,7 @@ class FlutterContacts {
             resolver.update(
                 ContactsContract.RawContacts.CONTENT_URI,
                 contentValues,
-                ContactsContract.RawContacts._ID + "=?",
+                RawContacts._ID + "=?",
                 /*selectionArgs=*/arrayOf(rawId.toString())
             )
 
@@ -495,6 +533,7 @@ class FlutterContacts {
             val insertedContacts: List<Map<String, Any?>> = select(
                 resolver,
                 rawId.toString(),
+                /*lookupKey*/null,
                 /*withProperties=*/ true,
                 /*withThumbnail=*/true,
                 /*withPhoto=*/true,
@@ -523,80 +562,88 @@ class FlutterContacts {
             // We'll use the first raw contact ID for adds. There might a better way to
             // do this...
             val contactId = contact.id
-            val rawContactId = contact.accounts.first().rawId
-
-            // Update name and other properties, by deleting existing ones and creating
-            // new ones.
-            ops.add(
-                ContentProviderOperation.newDelete(Data.CONTENT_URI)
-                    .withSelection(
-                        "${RawContacts.CONTACT_ID}=? and ${Data.MIMETYPE} in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        arrayOf(
-                            contactId,
-                            StructuredName.CONTENT_ITEM_TYPE,
-                            Nickname.CONTENT_ITEM_TYPE,
-                            Phone.CONTENT_ITEM_TYPE,
-                            Email.CONTENT_ITEM_TYPE,
-                            StructuredPostal.CONTENT_ITEM_TYPE,
-                            Organization.CONTENT_ITEM_TYPE,
-                            Website.CONTENT_ITEM_TYPE,
-                            Im.CONTENT_ITEM_TYPE,
-                            Event.CONTENT_ITEM_TYPE,
-                            Note.CONTENT_ITEM_TYPE
+            val firstRawContactId = contact.accounts.first().rawId
+            for (rawContact in contact.accounts) {
+                val rawContactId = rawContact.rawId
+                // Update name and other properties, by deleting existing ones and creating
+                // new ones.
+                ops.add(
+                    ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                        .withSelection(
+                            "${Data.RAW_CONTACT_ID}=? and ${Data.MIMETYPE} in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            arrayOf(
+                                rawContactId,
+                                StructuredName.CONTENT_ITEM_TYPE,
+                                Nickname.CONTENT_ITEM_TYPE,
+                                Phone.CONTENT_ITEM_TYPE,
+                                Email.CONTENT_ITEM_TYPE,
+                                StructuredPostal.CONTENT_ITEM_TYPE,
+                                Organization.CONTENT_ITEM_TYPE,
+                                Website.CONTENT_ITEM_TYPE,
+                                Im.CONTENT_ITEM_TYPE,
+                                Event.CONTENT_ITEM_TYPE,
+                                Note.CONTENT_ITEM_TYPE
+                            )
                         )
+                        .build()
+                )
+                if (contact.photo == null && contact.thumbnail == null) {
+                    ops.add(
+                        ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                            .withSelection(
+                                "${Data.RAW_CONTACT_ID}=? and ${Data.MIMETYPE}=?",
+                                arrayOf(
+                                    rawContactId,
+                                    Photo.CONTENT_ITEM_TYPE
+                                )
+                            )
+                            .build()
                     )
-                    .build()
-            )
-            if (contact.photo == null && contact.thumbnail == null) {
-                ops.add(
-                    ContentProviderOperation.newDelete(Data.CONTENT_URI)
-                        .withSelection(
-                            "${RawContacts.CONTACT_ID}=? and ${Data.MIMETYPE}=?",
-                            arrayOf(
-                                contactId,
-                                Photo.CONTENT_ITEM_TYPE
+                }
+                if (withGroups) {
+                    ops.add(
+                        ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                            .withSelection(
+                                "${Data.RAW_CONTACT_ID}=? and ${Data.MIMETYPE}=?",
+                                arrayOf(
+                                    rawContactId,
+                                    GroupMembership.CONTENT_ITEM_TYPE
+                                )
                             )
-                        )
-                        .build()
+                            .build()
+                    )
+                }
+
+                buildOpsForContact(contact, ops, rawContactId)
+                if (contact.photo != null) {
+                    buildOpsForPhoto(resolver, contact.photo!!, ops, rawContactId.toLong())
+                }
+                ops.add(ContentProviderOperation.newUpdate(RawContacts.CONTENT_URI)
+                    .withSelection("${RawContacts._ID}=?", arrayOf(rawContactId))
+                    .withValue(RawContacts.SYNC1, rawContact.sync1)
+                    .withValue(RawContacts.SYNC2, rawContact.sync2)
+                    .withValue(RawContacts.SYNC3, rawContact.sync3)
+                    .withValue(RawContacts.SYNC4, rawContact.sync4)
+                    .build())
+                // Save.
+                resolver.applyBatch(ContactsContract.AUTHORITY, ArrayList(ops))
+
+                // Update starred status.
+                val contentValues = ContentValues()
+                contentValues.put(ContactsContract.Contacts.STARRED, if (contact.isStarred) 1 else 0)
+                resolver.update(
+                    ContactsContract.Contacts.CONTENT_URI,
+                    contentValues,
+                    ContactsContract.Contacts._ID + "=?",
+                    /*selectionArgs=*/arrayOf(contactId)
                 )
             }
-            if (withGroups) {
-                ops.add(
-                    ContentProviderOperation.newDelete(Data.CONTENT_URI)
-                        .withSelection(
-                            "${RawContacts.CONTACT_ID}=? and ${Data.MIMETYPE}=?",
-                            arrayOf(
-                                contactId,
-                                GroupMembership.CONTENT_ITEM_TYPE
-                            )
-                        )
-                        .build()
-                )
-            }
-
-            buildOpsForContact(contact, ops, rawContactId)
-            if (contact.photo != null) {
-                buildOpsForPhoto(resolver, contact.photo!!, ops, rawContactId.toLong())
-            }
-
-            // Save.
-            resolver.applyBatch(ContactsContract.AUTHORITY, ArrayList(ops))
-
-            // Update starred status.
-            val contentValues = ContentValues()
-            contentValues.put(ContactsContract.Contacts.STARRED, if (contact.isStarred) 1 else 0)
-            resolver.update(
-                ContactsContract.Contacts.CONTENT_URI,
-                contentValues,
-                ContactsContract.Contacts._ID + "=?",
-                /*selectionArgs=*/arrayOf(contactId)
-            )
-
             // Load contacts with that raw ID, which will give us the full contact as it
             // was saved.
             val updatedContacts: List<Map<String, Any?>> = select(
                 resolver,
-                rawContactId,
+                firstRawContactId,
+                /*lookupKey*/null,
                 /*withProperties=*/ true,
                 /*withThumbnail=*/true,
                 /*withPhoto=*/true,
@@ -776,6 +823,8 @@ class FlutterContacts {
                 contacts.add(
                     Contact(
                         /*id=*/(cursor.getString(cursor.getColumnIndex(Contacts._ID)) ?: ""),
+                        /*lookupKey=*/cursor.getString(cursor.getColumnIndex(Contacts.LOOKUP_KEY)),
+                        /*lastUpdatedTimestamp=*/cursor.getLong(cursor.getColumnIndex(Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)),
                         /*displayName=*/(cursor.getString(cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)) ?: ""),
                         isStarred = (cursor.getInt(cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)) ?: 0) == 0
                     )

@@ -2,6 +2,7 @@ import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_contacts_example/util/avatar.dart';
+import 'package:flutter_contacts_example/util/utils.dart';
 import 'package:pretty_json/pretty_json.dart';
 
 class ContactPage extends StatefulWidget {
@@ -19,10 +20,13 @@ class _ContactPageState extends State<ContactPage>
     setState(() {
       _contact = contact;
     });
-    _fetchContact();
+    _fetchContact(null);
   }
 
-  Future _fetchContact() async {
+  Future _fetchContact(Contact updatedContact) async {
+    if(updatedContact != null){
+      _contact = updatedContact;
+    }
     // First fetch all contact details
     await _fetchContactWith(highRes: false);
 
@@ -124,6 +128,10 @@ class _ContactPageState extends State<ContactPage>
               (x) => [
                     Divider(),
                     Text('ID: ${x.id}'),
+                    InkWell(child: Text('LOOKUP_KEY: ${x.lookupKey}'), onLongPress: () async {
+                      await Utils.copyToClipboard(x.lookupKey, context);
+                    },),
+                    Text('Last updated: ${DateTime.fromMillisecondsSinceEpoch(x.lastUpdatedTimestamp)}'),
                     Text('Display name: ${x.displayName}'),
                     Text('Starred: ${x.isStarred}'),
                   ]),
@@ -245,6 +253,10 @@ class _ContactPageState extends State<ContactPage>
                     Text('Raw IDs: ${x.rawId}'),
                     Text('Type: ${x.type}'),
                     Text('Name: ${x.name}'),
+                    Text('sync1: ${x.sync1}'),
+                    Text('sync2: ${x.sync2}'),
+                    Text('sync3: ${x.sync3}'),
+                    Text('sync4: ${x.sync4}'),
                     Text('Mimetypes: ${x.mimetypes}'),
                   ]),
           _makeCard(

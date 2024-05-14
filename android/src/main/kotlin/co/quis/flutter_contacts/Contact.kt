@@ -14,6 +14,8 @@ import co.quis.flutter_contacts.properties.Website
 
 data class Contact(
     var id: String,
+    var lookupKey: String,
+    var lastUpdatedTimestamp: Long,
     var displayName: String,
     var thumbnail: ByteArray? = null,
     var photo: ByteArray? = null,
@@ -34,6 +36,10 @@ data class Contact(
         fun fromMap(m: Map<String, Any?>): Contact {
             return Contact(
                 m["id"] as String,
+                m["lookupKey"] as String,
+                // in dart ints are 64-bits, which is equivalent to long. Hovewer flutter converts int to java Integer
+                // by default and only uses if it is needed
+                if (m["lastUpdatedTimestamp"] is Long) (m["lastUpdatedTimestamp"] as Long) else (m["lastUpdatedTimestamp"] as Int).toLong(),
                 m["displayName"] as String,
                 m["thumbnail"] as? ByteArray,
                 m["photo"] as? ByteArray,
@@ -55,6 +61,8 @@ data class Contact(
 
     fun toMap(): Map<String, Any?> = mapOf(
         "id" to id,
+        "lookupKey" to lookupKey,
+        "lastUpdatedTimestamp" to lastUpdatedTimestamp,
         "displayName" to displayName,
         "thumbnail" to thumbnail,
         "photo" to photo,
