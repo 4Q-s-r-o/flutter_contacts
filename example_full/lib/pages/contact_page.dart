@@ -116,6 +116,7 @@ class _ContactPageState extends State<ContactPage>
               (x) => [
                     Divider(),
                     Text('ID: ${x.id}'),
+                    Text('LOOKUP_KEY: ${x.lookupKey}'),
                     Text('Display name: ${x.displayName}'),
                     Text('Starred: ${x.isStarred}'),
                   ]),

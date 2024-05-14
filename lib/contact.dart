@@ -69,6 +69,9 @@ class Contact {
   /// The unique identifier of the contact.
   String id;
 
+  /// Persistent link to contact, that shouldn't change even after resynchronization of contacts
+  String lookupKey;
+
   /// The contact display name.
   String displayName;
 
@@ -131,6 +134,7 @@ class Contact {
 
   Contact({
     this.id = '',
+    this.lookupKey = '',
     this.displayName = '',
     this.thumbnail,
     this.photo,
@@ -160,6 +164,7 @@ class Contact {
 
   factory Contact.fromJson(Map<String, dynamic> json) => Contact(
         id: (json['id'] as String?) ?? '',
+        lookupKey: (json['lookupKey'] as String?) ?? '',
         displayName: (json['displayName'] as String?) ?? '',
         thumbnail: json['thumbnail'] as Uint8List?,
         photo: json['photo'] as Uint8List?,
@@ -204,6 +209,7 @@ class Contact {
       Map<String, dynamic>.from({
         'id': id,
         'displayName': displayName,
+        'lookupKey': lookupKey,
         'thumbnail': withThumbnail ? thumbnail : null,
         'photo': withPhoto ? photo : null,
         'isStarred': isStarred,
@@ -223,6 +229,7 @@ class Contact {
   @override
   int get hashCode =>
       id.hashCode ^
+      lookupKey.hashCode ^
       displayName.hashCode ^
       thumbnail.hashCode ^
       photo.hashCode ^
@@ -241,6 +248,7 @@ class Contact {
   bool operator ==(Object o) =>
       o is Contact &&
       o.id == id &&
+      o.lookupKey == lookupKey &&
       o.displayName == displayName &&
       o.thumbnail == thumbnail &&
       o.photo == photo &&
@@ -257,7 +265,7 @@ class Contact {
 
   @override
   String toString() =>
-      'Contact(id=$id, displayName=$displayName, thumbnail=$thumbnail, '
+      'Contact(id=$id, lookupKey=$lookupKey, displayName=$displayName, thumbnail=$thumbnail, '
       'photo=$photo, isStarred=$isStarred, name=$name, phones=$phones, '
       'emails=$emails, addresses=$addresses, organizations=$organizations, '
       'websites=$websites, socialMedias=$socialMedias, events=$events, '

@@ -114,6 +114,7 @@ class FlutterContactsPlugin : FlutterPlugin, MethodCallHandler, EventChannel.Str
                             FlutterContacts.select(
                                 resolver!!,
                                 rawId,
+                                /*lookupKey=*/null,
                                 /*withProperties=*/false,
                                 /*withThumbnail=*/false,
                                 /*withPhoto=*/false,
@@ -209,10 +210,12 @@ class FlutterContactsPlugin : FlutterPlugin, MethodCallHandler, EventChannel.Str
                     val returnUnifiedContacts = args[6] as Boolean
                     val includeNonVisible = args[7] as Boolean
                     // args[8] = includeNotesOnIos13AndAbove
+                    val lookupKey = args[9] as String?
                     val contacts: List<Map<String, Any?>> =
                         FlutterContacts.select(
                             resolver!!,
                             id,
+                            lookupKey,
                             withProperties,
                             // Sometimes thumbnail is available but photo is not, so we
                             // fetch thumbnails even if only the photo was requested.

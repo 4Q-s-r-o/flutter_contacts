@@ -55,6 +55,7 @@ class FlutterContacts {
         fun select(
             resolver: ContentResolver,
             id: String?,
+            lookupKey: String?,
             withProperties: Boolean,
             withThumbnail: Boolean,
             withPhoto: Boolean,
@@ -64,7 +65,7 @@ class FlutterContacts {
             includeNonVisible: Boolean,
             idIsRawContactId: Boolean = false
         ): List<Map<String, Any?>> {
-            if (id == null && !withProperties && !withThumbnail && !withPhoto &&
+            if (id == null && lookupKey == null && !withProperties && !withThumbnail && !withPhoto &&
                 returnUnifiedContacts
             ) {
                 return getQuick(resolver, includeNonVisible)
@@ -73,6 +74,7 @@ class FlutterContacts {
             // All fields we care about – ID and display name are always included.
             var projection = mutableListOf(
                 Data.CONTACT_ID,
+                Data.LOOKUP_KEY,
                 Data.MIMETYPE,
                 Contacts.DISPLAY_NAME_PRIMARY,
                 Contacts.STARRED
@@ -162,6 +164,10 @@ class FlutterContacts {
                 }
                 selectionArgs = arrayOf(id)
             }
+            if(lookupKey != null){
+                selectionClauses.add("${Data.LOOKUP_KEY} = ?")
+                selectionArgs += lookupKey;
+            }
             val selection: String? = if (selectionClauses.isEmpty()) null else selectionClauses.joinToString(separator = " AND ")
 
             // NOTE: The projection filters columns, and the selection filters rows. We
@@ -197,6 +203,7 @@ class FlutterContacts {
                 if (id !in index) {
                     var contact = Contact(
                         /*id=*/id,
+                        /*lookupKey=*/getString(Contacts.LOOKUP_KEY),
                         /*displayName=*/getString(Contacts.DISPLAY_NAME_PRIMARY),
                         isStarred = getBool(Contacts.STARRED)
                     )
@@ -469,6 +476,7 @@ class FlutterContacts {
             val insertedContacts: List<Map<String, Any?>> = select(
                 resolver,
                 rawId.toString(),
+                /*lookupKey*/null,
                 /*withProperties=*/ true,
                 /*withThumbnail=*/true,
                 /*withPhoto=*/true,
@@ -571,6 +579,7 @@ class FlutterContacts {
             val updatedContacts: List<Map<String, Any?>> = select(
                 resolver,
                 rawContactId,
+                /*lookupKey*/null,
                 /*withProperties=*/ true,
                 /*withThumbnail=*/true,
                 /*withPhoto=*/true,
@@ -750,6 +759,7 @@ class FlutterContacts {
                 contacts.add(
                     Contact(
                         /*id=*/(cursor.getString(cursor.getColumnIndex(Contacts._ID)) ?: ""),
+                        /*lookupKey=*/cursor.getString(cursor.getColumnIndex(Contacts.LOOKUP_KEY)),
                         /*displayName=*/(cursor.getString(cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)) ?: ""),
                         isStarred = (cursor.getInt(cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)) ?: 0) == 0
                     )
