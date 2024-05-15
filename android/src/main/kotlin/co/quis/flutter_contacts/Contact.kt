@@ -15,6 +15,7 @@ import co.quis.flutter_contacts.properties.Website
 data class Contact(
     var id: String,
     var lookupKey: String,
+    var lastUpdatedTimestamp: Long,
     var displayName: String,
     var thumbnail: ByteArray? = null,
     var photo: ByteArray? = null,
@@ -36,6 +37,7 @@ data class Contact(
             return Contact(
                 m["id"] as String,
                 m["lookupKey"] as String,
+                m["lastUpdatedTimestamp"] as Long,
                 m["displayName"] as String,
                 m["thumbnail"] as? ByteArray,
                 m["photo"] as? ByteArray,
@@ -58,6 +60,7 @@ data class Contact(
     fun toMap(): Map<String, Any?> = mapOf(
         "id" to id,
         "lookupKey" to lookupKey,
+        "lastUpdatedTimestamp" to lastUpdatedTimestamp,
         "displayName" to displayName,
         "thumbnail" to thumbnail,
         "photo" to photo,

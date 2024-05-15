@@ -27,6 +27,7 @@ import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.Groups
 import android.provider.ContactsContract.RawContacts
+import android.util.Log
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.OutputStream
@@ -75,6 +76,7 @@ class FlutterContacts {
             var projection = mutableListOf(
                 Data.CONTACT_ID,
                 Data.LOOKUP_KEY,
+                Data.CONTACT_LAST_UPDATED_TIMESTAMP,
                 Data.MIMETYPE,
                 Contacts.DISPLAY_NAME_PRIMARY,
                 Contacts.STARRED
@@ -157,16 +159,20 @@ class FlutterContacts {
             var selectionArgs = arrayOf<String>()
 
             if (id != null) {
+                Log.d("EMHA", "SELECT ID IS NOT NULL");
                 if (idIsRawContactId || !returnUnifiedContacts) {
+                    Log.d("EMHA", "SELECTING BY RAW  ID "+id);
                     selectionClauses.add("${Data.RAW_CONTACT_ID} = ?")
                 } else {
+                    Log.d("EMHA", "SELECTING BY NON-RAW  ID "+id);
                     selectionClauses.add("${Data.CONTACT_ID} = ?")
                 }
                 selectionArgs = arrayOf(id)
             }
             if(lookupKey != null){
+                Log.d("EMHA", "SELECT lookupKey IS NOT NULL "+lookupKey)
                 selectionClauses.add("${Data.LOOKUP_KEY} = ?")
-                selectionArgs += lookupKey;
+                selectionArgs += lookupKey
             }
             val selection: String? = if (selectionClauses.isEmpty()) null else selectionClauses.joinToString(separator = " AND ")
 
@@ -195,6 +201,7 @@ class FlutterContacts {
 
             fun getString(col: String): String = cursor.getString(cursor.getColumnIndex(col)) ?: ""
             fun getInt(col: String): Int = cursor.getInt(cursor.getColumnIndex(col)) ?: 0
+            fun getLong(col: String): Long = cursor.getLong(cursor.getColumnIndex(col)) ?: 0
             fun getBool(col: String): Boolean = getInt(col) == 1
 
             while (cursor.moveToNext()) {
@@ -204,6 +211,7 @@ class FlutterContacts {
                     var contact = Contact(
                         /*id=*/id,
                         /*lookupKey=*/getString(Contacts.LOOKUP_KEY),
+                        /*lastUpdatedTimestamp=*/getLong(Contacts.CONTACT_LAST_UPDATED_TIMESTAMP),
                         /*displayName=*/getString(Contacts.DISPLAY_NAME_PRIMARY),
                         isStarred = getBool(Contacts.STARRED)
                     )
@@ -760,6 +768,7 @@ class FlutterContacts {
                     Contact(
                         /*id=*/(cursor.getString(cursor.getColumnIndex(Contacts._ID)) ?: ""),
                         /*lookupKey=*/cursor.getString(cursor.getColumnIndex(Contacts.LOOKUP_KEY)),
+                        /*lastUpdatedTimestamp=*/cursor.getLong(cursor.getColumnIndex(Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)),
                         /*displayName=*/(cursor.getString(cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)) ?: ""),
                         isStarred = (cursor.getInt(cursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)) ?: 0) == 0
                     )

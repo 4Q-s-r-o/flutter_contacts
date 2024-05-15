@@ -117,6 +117,7 @@ class _ContactPageState extends State<ContactPage>
                     Divider(),
                     Text('ID: ${x.id}'),
                     Text('LOOKUP_KEY: ${x.lookupKey}'),
+                    Text('Last updated: ${DateTime.fromMillisecondsSinceEpoch(x.lastUpdatedTimestamp)}'),
                     Text('Display name: ${x.displayName}'),
                     Text('Starred: ${x.isStarred}'),
                   ]),

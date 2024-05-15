@@ -72,6 +72,9 @@ class Contact {
   /// Persistent link to contact, that shouldn't change even after resynchronization of contacts
   String lookupKey;
 
+  /// Timestamp of contact last modification
+  int lastUpdatedTimestamp;
+
   /// The contact display name.
   String displayName;
 
@@ -136,6 +139,7 @@ class Contact {
     this.id = '',
     this.lookupKey = '',
     this.displayName = '',
+    this.lastUpdatedTimestamp = 0,
     this.thumbnail,
     this.photo,
     this.isStarred = false,
@@ -165,6 +169,7 @@ class Contact {
   factory Contact.fromJson(Map<String, dynamic> json) => Contact(
         id: (json['id'] as String?) ?? '',
         lookupKey: (json['lookupKey'] as String?) ?? '',
+        lastUpdatedTimestamp: (json['lastUpdatedTimestamp'] as int?) ?? 0,
         displayName: (json['displayName'] as String?) ?? '',
         thumbnail: json['thumbnail'] as Uint8List?,
         photo: json['photo'] as Uint8List?,
@@ -210,6 +215,7 @@ class Contact {
         'id': id,
         'displayName': displayName,
         'lookupKey': lookupKey,
+        'lastUpdatedTimestamp': lastUpdatedTimestamp,
         'thumbnail': withThumbnail ? thumbnail : null,
         'photo': withPhoto ? photo : null,
         'isStarred': isStarred,
@@ -265,7 +271,7 @@ class Contact {
 
   @override
   String toString() =>
-      'Contact(id=$id, lookupKey=$lookupKey, displayName=$displayName, thumbnail=$thumbnail, '
+      'Contact(id=$id, lookupKey=$lookupKey, lastUpdatedTimestamp=$lastUpdatedTimestamp, displayName=$displayName, thumbnail=$thumbnail, '
       'photo=$photo, isStarred=$isStarred, name=$name, phones=$phones, '
       'emails=$emails, addresses=$addresses, organizations=$organizations, '
       'websites=$websites, socialMedias=$socialMedias, events=$events, '
