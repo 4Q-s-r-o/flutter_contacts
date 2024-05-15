@@ -2,6 +2,7 @@ import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_contacts_example/util/avatar.dart';
+import 'package:flutter_contacts_example/util/utils.dart';
 import 'package:pretty_json/pretty_json.dart';
 
 class ContactPage extends StatefulWidget {
@@ -116,7 +117,9 @@ class _ContactPageState extends State<ContactPage>
               (x) => [
                     Divider(),
                     Text('ID: ${x.id}'),
-                    Text('LOOKUP_KEY: ${x.lookupKey}'),
+                    InkWell(child: Text('LOOKUP_KEY: ${x.lookupKey}'), onLongPress: () async {
+                      await Utils.copyToClipboard(x.lookupKey, context);
+                    },),
                     Text('Last updated: ${DateTime.fromMillisecondsSinceEpoch(x.lastUpdatedTimestamp)}'),
                     Text('Display name: ${x.displayName}'),
                     Text('Starred: ${x.isStarred}'),

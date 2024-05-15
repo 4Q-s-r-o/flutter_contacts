@@ -159,20 +159,34 @@ class FlutterContacts {
             var selectionArgs = arrayOf<String>()
 
             if (id != null) {
-                Log.d("EMHA", "SELECT ID IS NOT NULL");
                 if (idIsRawContactId || !returnUnifiedContacts) {
-                    Log.d("EMHA", "SELECTING BY RAW  ID "+id);
                     selectionClauses.add("${Data.RAW_CONTACT_ID} = ?")
                 } else {
-                    Log.d("EMHA", "SELECTING BY NON-RAW  ID "+id);
                     selectionClauses.add("${Data.CONTACT_ID} = ?")
                 }
                 selectionArgs = arrayOf(id)
             }
             if(lookupKey != null){
-                Log.d("EMHA", "SELECT lookupKey IS NOT NULL "+lookupKey)
-                selectionClauses.add("${Data.LOOKUP_KEY} = ?")
-                selectionArgs += lookupKey
+                val lookupKeyToContactId = resolver.query(
+                    Contacts.CONTENT_LOOKUP_URI.buildUpon().appendPath(lookupKey).build(),
+                    arrayOf(Contacts._ID), null, null, null
+                )
+                // TRYING TO RESOLVE CONTACT ID BY LOOKUP KEY
+                if (lookupKeyToContactId != null) {
+                    if (lookupKeyToContactId.moveToFirst()) {
+                        selectionClauses.add("${Data.CONTACT_ID} = ?")
+                        selectionArgs += lookupKeyToContactId.getString(
+                            lookupKeyToContactId.getColumnIndexOrThrow(Contacts._ID)
+                        )
+                    } else {
+                        selectionClauses.add("${Data.LOOKUP_KEY} = ?")
+                        selectionArgs += lookupKey
+                    }
+                    lookupKeyToContactId.close();
+                } else {
+                    selectionClauses.add("${Data.LOOKUP_KEY} = ?")
+                    selectionArgs += lookupKey
+                }
             }
             val selection: String? = if (selectionClauses.isEmpty()) null else selectionClauses.joinToString(separator = " AND ")
 
