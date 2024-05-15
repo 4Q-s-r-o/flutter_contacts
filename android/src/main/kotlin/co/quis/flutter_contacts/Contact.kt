@@ -37,7 +37,9 @@ data class Contact(
             return Contact(
                 m["id"] as String,
                 m["lookupKey"] as String,
-                m["lastUpdatedTimestamp"] as Long,
+                // in dart ints are 64-bits, which is equivalent to long. Hovewer flutter converts int to java Integer
+                // by default and only uses if it is needed
+                if (m["lastUpdatedTimestamp"] is Long) (m["lastUpdatedTimestamp"] as Long) else (m["lastUpdatedTimestamp"] as Int).toLong(),
                 m["displayName"] as String,
                 m["thumbnail"] as? ByteArray,
                 m["photo"] as? ByteArray,
