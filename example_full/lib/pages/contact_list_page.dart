@@ -62,6 +62,10 @@ class _ContactListPageState extends State<ContactListPage>
     final contacts = withPhotos
         ? (await FlutterContacts.getContacts(withThumbnail: true)).toList()
         : (await FlutterContacts.getContacts()).toList();
+    print('keys:');
+    for (var c in contacts) {
+      print(c.lookupKey);
+    }
     setState(() {
       _contacts = contacts;
     });
