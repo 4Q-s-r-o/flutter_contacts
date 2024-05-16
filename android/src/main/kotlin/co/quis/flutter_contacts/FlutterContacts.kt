@@ -166,7 +166,7 @@ class FlutterContacts {
                 }
                 selectionArgs = arrayOf(id)
             }
-            if(lookupKey != null){
+            if(lookupKey != null && lookupKey != ""){
                 val lookupKeyToContactId = resolver.query(
                     Contacts.CONTENT_LOOKUP_URI.buildUpon().appendPath(lookupKey).build(),
                     arrayOf(Contacts._ID), null, null, null
