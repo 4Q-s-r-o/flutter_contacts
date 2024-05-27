@@ -23,7 +23,7 @@ class _EditContactPageState extends State<EditContactPage>
     with AfterLayoutMixin<EditContactPage> {
   var _contact = Contact();
   bool _isEdit = false;
-  void Function() _onUpdate;
+  void Function(Contact) _onUpdate;
 
   final _imagePicker = ImagePicker();
 
@@ -73,13 +73,18 @@ class _EditContactPageState extends State<EditContactPage>
           IconButton(
             icon: Icon(Icons.save),
             onPressed: () async {
+              Contact updatedContact;
               if (_isEdit) {
-                await _contact.update(withGroups: true);
+                for (var account in _contact.accounts) {
+                  account.sync4='updated_from_co.quis.flutter_contacts_example';
+                }
+                updatedContact = await _contact.update(withGroups: true);
               } else {
-                await _contact.insert();
+                _contact.accounts.add(Account('', 'vnd.sec.contact.phone', 'vnd.sec.contact.phone', null, null, null, 'created_from_co.quis.flutter_contacts_example', []));
+                updatedContact = await _contact.insert();
               }
-              if (_onUpdate != null) _onUpdate();
-              Navigator.of(context).pop();
+              if (_onUpdate != null) _onUpdate(updatedContact);
+              Navigator.of(context).pop(updatedContact);
             },
           ),
         ],

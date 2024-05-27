@@ -15,15 +15,40 @@ class Account {
   /// Account name, e.g. john.doe@gmail.com.
   String name;
 
+  /// Custom sync identifier 1
+  String? sync1;
+
+  /// Custom sync identifier 2
+  String? sync2;
+
+  /// Custom sync identifier 3
+  String? sync3;
+
+  /// Custom sync identifier 4
+  String? sync4;
+
   /// Android mimetypes provided by this account.
   List<String> mimetypes;
 
-  Account(this.rawId, this.type, this.name, this.mimetypes);
+  Account(
+    this.rawId,
+    this.type,
+    this.name,
+    this.sync1,
+    this.sync2,
+    this.sync3,
+    this.sync4,
+    this.mimetypes,
+  );
 
   factory Account.fromJson(Map<String, dynamic> json) => Account(
         (json['rawId'] as String?) ?? '',
         (json['type'] as String?) ?? '',
         (json['name'] as String?) ?? '',
+        (json['sync1'] as String?),
+        (json['sync2'] as String?),
+        (json['sync3'] as String?),
+        (json['sync4'] as String?),
         (json['mimetypes'] as List?)?.map((e) => e as String).toList() ?? [],
       );
 
@@ -31,10 +56,14 @@ class Account {
         'rawId': rawId,
         'type': type,
         'name': name,
+        'sync1': sync1,
+        'sync2': sync2,
+        'sync3': sync3,
+        'sync4': sync4,
         'mimetypes': mimetypes,
       };
 
   @override
   String toString() =>
-      'Account(rawId=$rawId, type=$type, name=$name, mimetypes=$mimetypes)';
+      'Account(rawId=$rawId, type=$type, name=$name, mimetypes=$mimetypes, sync1=$sync1, sync2=$sync2, sync3=$sync3, sync4=$sync4)';
 }

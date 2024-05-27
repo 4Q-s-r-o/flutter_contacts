@@ -20,10 +20,13 @@ class _ContactPageState extends State<ContactPage>
     setState(() {
       _contact = contact;
     });
-    _fetchContact();
+    _fetchContact(null);
   }
 
-  Future _fetchContact() async {
+  Future _fetchContact(Contact updatedContact) async {
+    if(updatedContact != null){
+      _contact = updatedContact;
+    }
     // First fetch all contact details
     await _fetchContactWith(highRes: false);
 
@@ -242,6 +245,10 @@ class _ContactPageState extends State<ContactPage>
                     Text('Raw IDs: ${x.rawId}'),
                     Text('Type: ${x.type}'),
                     Text('Name: ${x.name}'),
+                    Text('sync1: ${x.sync1}'),
+                    Text('sync2: ${x.sync2}'),
+                    Text('sync3: ${x.sync3}'),
+                    Text('sync4: ${x.sync4}'),
                     Text('Mimetypes: ${x.mimetypes}'),
                   ]),
           _makeCard(

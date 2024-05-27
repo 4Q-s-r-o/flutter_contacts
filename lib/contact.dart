@@ -376,6 +376,7 @@ class Contact {
     socialMedias = _depuplicateProperty(socialMedias);
     events = _depuplicateProperty(events);
     notes = _depuplicateProperty(notes);
+    groups = _depuplicateProperty(groups, (x) => x.id.hashCode);
   }
 
   static List<T> _depuplicateProperty<T>(List<T> list,
