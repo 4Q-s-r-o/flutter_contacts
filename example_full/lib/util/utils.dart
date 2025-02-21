@@ -11,10 +11,11 @@ class Utils {
         builder: (BuildContext context, FlashController<void> controller) {
           return Flash<void>(
             controller: controller,
-            backgroundColor: Colors.green,
             position: FlashPosition.bottom,
-            behavior: FlashBehavior.floating,
             child: FlashBar(
+              controller: controller,
+              backgroundColor: Colors.green,
+              behavior: FlashBehavior.floating,
               padding: const EdgeInsets.all(5.0),
               content: Center(
                 child: Row(

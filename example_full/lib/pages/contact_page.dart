@@ -23,7 +23,7 @@ class _ContactPageState extends State<ContactPage>
     _fetchContact(null);
   }
 
-  Future _fetchContact(Contact updatedContact) async {
+  Future _fetchContact(Contact? updatedContact) async {
     if(updatedContact != null){
       _contact = updatedContact;
     }

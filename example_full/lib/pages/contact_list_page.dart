@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:after_layout/after_layout.dart';
@@ -166,7 +167,7 @@ class _ContactListPageState extends State<ContactListPage>
             TextButton(
               child: const Text('OK'),
               onPressed: () async {
-                if (lookupKeyController.text == null || lookupKeyController.text.isEmpty) {
+                if (lookupKeyController.text.isEmpty) {
                   return;
                 }
                 var c = await FlutterContacts.getContactByLookupKey(lookupKeyController.text);

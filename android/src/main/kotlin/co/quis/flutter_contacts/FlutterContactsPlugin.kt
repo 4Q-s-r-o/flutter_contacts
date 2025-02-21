@@ -375,6 +375,7 @@ class FlutterContactsPlugin : FlutterPlugin, MethodCallHandler, EventChannel.Str
                 FlutterContacts.select(
                     resolver!!,
                     rawId,
+                    /*lookupKey=*/null,
                     /*withProperties=*/false,
                     /*withThumbnail=*/false,
                     /*withPhoto=*/false,
